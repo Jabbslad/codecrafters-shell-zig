@@ -10,5 +10,7 @@ pub fn main() !void {
     const user_input = try stdin.readUntilDelimiter(&buffer, '\n');
 
     // TODO: Handle user input
-    _ = user_input;
+    var iterator = std.mem.tokenizeAny(u8, user_input, " ");
+    const command = iterator.next().?;
+    try stdout.print("{s}: command not found", .{command});
 }
