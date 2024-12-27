@@ -6,27 +6,33 @@ pub fn main() !void {
 
     const stdin = std.io.getStdIn().reader();
     var buffer: [1024]u8 = undefined;
-    var command: []u8 = undefined;
-    var args: ?[]u8 = undefined;
 
     while (true) {
         try stdout.print("$ ", .{});
         const user_input = try stdin.readUntilDelimiter(&buffer, '\n');
 
-        // TODO: Handle user input
-        if (std.mem.indexOf(u8, user_input, " ")) |i| {
-            command = user_input[0..i];
-            args = user_input[i + 1 ..];
-        } else {
-            command = user_input;
-            args = null;
-        }
+        var commands = std.mem.splitScalar(u8, user_input, ' ');
+        const command = commands.first();
+        const args = commands.rest();
+
         if (std.mem.eql(u8, command, "exit")) {
-            std.process.exit(try std.fmt.parseInt(u8, args.?, 10));
+            std.process.exit(try std.fmt.parseInt(u8, args, 10));
         } else if (std.mem.eql(u8, command, "echo")) {
-            try stdout.print("{s}\n", .{args.?});
+            try stdout.print("{s}\n", .{args});
+        } else if (std.mem.eql(u8, command, "type")) {
+            var args2 = std.mem.splitScalar(u8, args, ' ');
+            const arg1 = args2.first();
+            if (is_builtin(arg1)) {
+                try stdout.print("{s}: is a shell builtin\n", .{command});
+            } else {
+                try stdout.print("{s}: not found\n", .{command});
+            }
         } else {
             try stdout.print("{s}: command not found\n", .{command});
         }
     }
+}
+
+fn is_builtin(command: []const u8) bool {
+    return std.mem.eql(u8, command, "type") or std.mem.eql(u8, command, "exit") or std.mem.eql(u8, command, "echo");
 }
