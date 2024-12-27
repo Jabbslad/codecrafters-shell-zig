@@ -23,7 +23,7 @@ pub fn main() !void {
             var args2 = std.mem.splitScalar(u8, args, ' ');
             const arg1 = args2.first();
             if (is_builtin(arg1)) {
-                try stdout.print("{s}: is a shell builtin\n", .{arg1});
+                try stdout.print("{s} is a shell builtin\n", .{arg1});
             } else {
                 try stdout.print("{s}: not found\n", .{arg1});
             }
