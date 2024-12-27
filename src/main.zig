@@ -12,11 +12,15 @@ pub fn main() !void {
         const user_input = try stdin.readUntilDelimiter(&buffer, '\n');
 
         // TODO: Handle user input
-        var iterator = std.mem.tokenizeAny(u8, user_input, " ");
-        const command = iterator.next().?;
+        const space = std.mem.indexOf(u8, user_input, " ").?;
+        const command = user_input[0..space];
+        const args = user_input[space + 1 ..];
         if (std.mem.eql(u8, command, "exit")) {
-            std.process.exit(try std.fmt.parseInt(u8, iterator.next().?, 10));
+            std.process.exit(try std.fmt.parseInt(u8, user_input[space + 1 ..], 10));
+        } else if (std.mem.eql(u8, command, "echo")) {
+            try stdout.print("{s}\n", .{args});
+        } else {
+            try stdout.print("{s}: command not found\n", .{command});
         }
-        try stdout.print("{s}: command not found\n", .{command});
     }
 }
