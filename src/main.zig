@@ -1,5 +1,11 @@
 const std = @import("std");
 
+const Command = enum {
+    exit,
+    echo,
+    type,
+};
+
 pub fn main() !void {
     // Uncomment this block to pass the first stage
     const stdout = std.io.getStdOut().writer();
@@ -12,27 +18,32 @@ pub fn main() !void {
         const user_input = try stdin.readUntilDelimiter(&buffer, '\n');
 
         var commands = std.mem.splitScalar(u8, user_input, ' ');
-        const command = commands.first();
+        const command_raw = commands.first();
         const args = commands.rest();
 
-        if (std.mem.eql(u8, command, "exit")) {
-            std.process.exit(try std.fmt.parseInt(u8, args, 10));
-        } else if (std.mem.eql(u8, command, "echo")) {
-            try stdout.print("{s}\n", .{args});
-        } else if (std.mem.eql(u8, command, "type")) {
-            var args2 = std.mem.splitScalar(u8, args, ' ');
-            const arg1 = args2.first();
-            if (is_builtin(arg1)) {
-                try stdout.print("{s} is a shell builtin\n", .{arg1});
-            } else {
-                try stdout.print("{s}: not found\n", .{arg1});
+        const command_maybe = std.meta.stringToEnum(Command, command_raw);
+        if (command_maybe) |command| {
+            switch (command) {
+                .exit => {
+                    std.process.exit(0);
+                },
+                .echo => {
+                    try stdout.print("{s}\n", .{args});
+                },
+                .type => {
+                    if (is_builtin(args)) {
+                        try stdout.print("{s} is a shell builtin\n", .{args});
+                    } else {
+                        try stdout.print("{s}: not found\n", .{args});
+                    }
+                },
             }
         } else {
-            try stdout.print("{s}: command not found\n", .{command});
+            try stdout.print("{s}: command not found\n", .{command_raw});
         }
     }
 }
 
 fn is_builtin(command: []const u8) bool {
-    return std.mem.eql(u8, command, "type") or std.mem.eql(u8, command, "exit") or std.mem.eql(u8, command, "echo");
+    return std.meta.stringToEnum(Command, command) != null;
 }
