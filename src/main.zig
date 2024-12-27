@@ -14,6 +14,9 @@ pub fn main() !void {
         // TODO: Handle user input
         var iterator = std.mem.tokenizeAny(u8, user_input, " ");
         const command = iterator.next().?;
+        if (std.mem.eql(u8, command, "exit")) {
+            std.process.exit(try std.fmt.parseInt(u8, iterator.next().?, 10));
+        }
         try stdout.print("{s}: command not found\n", .{command});
     }
 }
