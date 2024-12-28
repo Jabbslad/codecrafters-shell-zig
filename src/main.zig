@@ -47,7 +47,7 @@ pub fn main() !void {
                 },
             }
         } else {
-            if (try check_path(allocator, command_raw)) |p| {
+            if (try check_path(allocator, command_raw)) |_| {
                 try run_program(user_input, allocator);
             } else {
                 try stdout.print("{s}: command not found\n", .{command_raw});
