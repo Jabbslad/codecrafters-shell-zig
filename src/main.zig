@@ -47,7 +47,11 @@ pub fn main() !void {
                 },
             }
         } else {
-            try stdout.print("{s}: command not found\n", .{command_raw});
+            if (try check_path(allocator, command_raw)) |p| {
+                try run_program(p, allocator);
+            } else {
+                try stdout.print("{s}: command not found\n", .{command_raw});
+            }
         }
     }
 }
@@ -65,4 +69,15 @@ fn check_path(allocator: std.mem.Allocator, command: []const u8) !?[]const u8 {
         return bin;
     }
     return null;
+}
+
+fn run_program(user_input: []const u8, allocator: std.mem.Allocator) !void {
+    var commands = std.mem.splitScalar(u8, user_input, ' ');
+    var array = std.ArrayList([]const u8).init(allocator);
+    defer array.deinit();
+    while (commands.next()) |command| {
+        try array.append(command);
+    }
+    var child = std.process.Child.init(array.items, allocator);
+    _ = try child.spawnAndWait();
 }
