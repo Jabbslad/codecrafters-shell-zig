@@ -58,7 +58,8 @@ fn check_path(allocator: std.mem.Allocator, stdout: anytype, command: []const u8
     while (itr.next()) |pathc| {
         const bin = try std.fmt.allocPrint(allocator, "{s}{s}{s}", .{ pathc, "/", command });
         std.fs.accessAbsolute(bin, .{}) catch continue;
-        try stdout.print("{s} is {s}\n", .{ command, pathc });
+        try stdout.print("{s} is {s}\n", .{ command, bin });
+        return;
     }
     try stdout.print("{s}: not found\n", .{command});
 }
