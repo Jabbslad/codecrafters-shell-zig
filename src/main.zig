@@ -65,7 +65,7 @@ pub fn main() !void {
                     };
                     const path = try std.fs.realpathAlloc(allocator, ".");
                     defer allocator.free(path);
-                    try stdout.print("{s}\n", .{path});
+                    try stdout.print("{s}\n", .{path}); //
                 },
             }
         } else {
