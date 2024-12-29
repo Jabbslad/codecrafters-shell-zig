@@ -58,7 +58,11 @@ pub fn main() !void {
                     try stdout.print("{s}\n", .{buff});
                 },
                 .cd => {
-                    std.posix.chdir(commands.items[1]) catch {
+                    var path = commands.items[1];
+                    if (std.mem.eql(u8, path, "~")) {
+                        path = std.posix.getenv("HOME").?;
+                    }
+                    std.posix.chdir(path) catch {
                         try stdout.print("cd: {s}: No such file or directory\n", .{commands.items[1]});
                     };
                 },
