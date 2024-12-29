@@ -12,13 +12,13 @@ pub fn main() !void {
     // Uncomment this block to pass the first stage
     const stdout = std.io.getStdOut().writer();
     const stdin = std.io.getStdIn().reader();
+    var buffer: [1024]u8 = undefined;
 
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     const allocator = arena.allocator();
 
     while (true) {
-        var buffer: [1024]u8 = undefined;
         try stdout.print("$ ", .{});
         const user_input = try stdin.readUntilDelimiter(&buffer, '\n');
 
@@ -60,11 +60,7 @@ pub fn main() !void {
                 .cd => {
                     std.posix.chdir(commands.items[1]) catch {
                         try stdout.print("cd: {s}: No such file or directory\n", .{commands.items[1]});
-                        continue;
                     };
-                    const path = try std.fs.realpathAlloc(allocator, ".");
-                    defer allocator.free(path);
-                    try stdout.print("{s}\n", .{path}); //
                 },
             }
         } else {
