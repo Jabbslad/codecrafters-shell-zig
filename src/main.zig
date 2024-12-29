@@ -4,6 +4,7 @@ const Command = enum {
     exit,
     echo,
     type,
+    pwd,
 };
 
 pub fn main() !void {
@@ -21,43 +22,52 @@ pub fn main() !void {
         try stdout.print("$ ", .{});
         const user_input = try stdin.readUntilDelimiter(&buffer, '\n');
 
-        var commands = std.mem.splitScalar(u8, user_input, ' ');
-        const command_raw = commands.first();
-        const args = commands.rest();
+        var tokens = std.mem.splitScalar(u8, user_input, ' ');
+        var commands = std.ArrayList([]const u8).init(allocator);
+        defer commands.deinit();
+        while (tokens.next()) |token| {
+            try commands.append(token);
+        }
 
-        const command_maybe = std.meta.stringToEnum(Command, command_raw);
+        const command_maybe = std.meta.stringToEnum(Command, commands.items[0]);
         if (command_maybe) |command| {
             switch (command) {
                 .exit => {
                     std.process.exit(0);
                 },
                 .echo => {
-                    try stdout.print("{s}\n", .{args});
+                    try stdout.print("{s}\n", .{commands.items[1..]});
                 },
                 .type => {
-                    if (is_builtin(args)) {
-                        try stdout.print("{s} is a shell builtin\n", .{args});
+                    const comm = commands.items[1];
+                    if (is_builtin(comm)) |_| {
+                        try stdout.print("{s} is a shell builtin\n", .{comm});
                     } else {
-                        if (try check_path(allocator, args)) |p| {
-                            try stdout.print("{s} is {s}\n", .{ args, p });
+                        if (try check_path(allocator, comm)) |p| {
+                            try stdout.print("{s} is {s}\n", .{ comm, p });
                         } else {
-                            try stdout.print("{s}: not found\n", .{args});
+                            try stdout.print("{s}: not found\n", .{comm});
                         }
                     }
                 },
+                .pwd => {
+                    var buff: [1024]u8 = undefined;
+                    _ = try std.fs.cwd().realpath(".", &buff);
+                    try stdout.print("{s}\n", .{buff});
+                },
             }
         } else {
-            if (try check_path(allocator, command_raw)) |_| {
-                try run_program(user_input, allocator);
+            if (try check_path(allocator, commands.items[0])) |_| {
+                try run_program(&commands, allocator);
             } else {
-                try stdout.print("{s}: command not found\n", .{command_raw});
+                try stdout.print("{s}: command not found\n", .{commands.items[0]});
             }
         }
     }
 }
 
-fn is_builtin(command: []const u8) bool {
-    return std.meta.stringToEnum(Command, command) != null;
+fn is_builtin(command: []const u8) ?Command {
+    return std.meta.stringToEnum(Command, command);
 }
 
 fn check_path(allocator: std.mem.Allocator, command: []const u8) !?[]const u8 {
@@ -71,13 +81,7 @@ fn check_path(allocator: std.mem.Allocator, command: []const u8) !?[]const u8 {
     return null;
 }
 
-fn run_program(user_input: []const u8, allocator: std.mem.Allocator) !void {
-    var commands = std.mem.splitScalar(u8, user_input, ' ');
-    var array = std.ArrayList([]const u8).init(allocator);
-    defer array.deinit();
-    while (commands.next()) |command| {
-        try array.append(command);
-    }
-    var child = std.process.Child.init(array.items, allocator);
+fn run_program(commands: *std.ArrayList([]const u8), allocator: std.mem.Allocator) !void {
+    var child = std.process.Child.init(commands.*.items, allocator);
     _ = try child.spawnAndWait();
 }
