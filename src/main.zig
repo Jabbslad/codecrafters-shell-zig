@@ -36,7 +36,7 @@ pub fn main() !void {
                     std.process.exit(0);
                 },
                 .echo => {
-                    const joined = try std.mem.join(allocator, " ", command.items[1..]);
+                    const joined = try std.mem.join(allocator, " ", commands.items[1..]);
                     defer allocator.free(joined);
                     try stdout.print("{s}\n", .{joined});
                 },
