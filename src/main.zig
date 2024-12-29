@@ -5,6 +5,7 @@ const Command = enum {
     echo,
     type,
     pwd,
+    cd,
 };
 
 pub fn main() !void {
@@ -56,6 +57,15 @@ pub fn main() !void {
                     var buff: [1024]u8 = undefined;
                     _ = try std.fs.cwd().realpath(".", &buff);
                     try stdout.print("{s}\n", .{buff});
+                },
+                .cd => {
+                    std.posix.chdir(commands.items[1]) catch {
+                        try stdout.print("cd: {s}: No such file or directory\n", .{commands.items[1]});
+                        continue;
+                    };
+                    const path = try std.fs.realpathAlloc(allocator, ".");
+                    defer allocator.free(path);
+                    try stdout.print("{s}\n", .{path});
                 },
             }
         } else {
