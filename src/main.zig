@@ -21,13 +21,7 @@ pub fn main() !void {
     while (true) {
         try stdout.print("$ ", .{});
         const user_input = try stdin.readUntilDelimiter(&buffer, '\n');
-
-        var tokens = std.mem.splitScalar(u8, user_input, ' ');
-        var commands = std.ArrayList([]const u8).init(allocator);
-        defer commands.deinit();
-        while (tokens.next()) |token| {
-            try commands.append(token);
-        }
+        var commands = try parse_command(allocator, user_input);
 
         const command_maybe = std.meta.stringToEnum(Command, commands.items[0]);
         if (command_maybe) |command| {
@@ -63,7 +57,7 @@ pub fn main() !void {
                         path = std.posix.getenv("HOME").?;
                     }
                     std.posix.chdir(path) catch {
-                        try stdout.print("cd: {s}: No such file or directory\n", .{commands.items[1]});
+                        try stdout.print("cd: {s}: No such file or directory\n", .{path});
                     };
                 },
             }
@@ -95,4 +89,54 @@ fn check_path(allocator: std.mem.Allocator, command: []const u8) !?[]const u8 {
 fn run_program(commands: *std.ArrayList([]const u8), allocator: std.mem.Allocator) !void {
     var child = std.process.Child.init(commands.*.items, allocator);
     _ = try child.spawnAndWait();
+}
+
+fn parse_command(allocator: std.mem.Allocator, command: []const u8) !std.ArrayList([]const u8) {
+    var tokens = std.mem.splitScalar(u8, command, ' ');
+    var commands = std.ArrayList([]const u8).init(allocator);
+    try commands.append(try allocator.dupe(u8, tokens.first()));
+    const rest = tokens.rest();
+    var in_quote = false;
+
+    var currBuffer = std.ArrayList(u8).init(allocator);
+    defer currBuffer.deinit();
+
+    for (rest) |token| {
+        if (token == ' ' and !in_quote) {
+            if (currBuffer.items.len > 0) {
+                try commands.append(try currBuffer.toOwnedSlice());
+                currBuffer.clearRetainingCapacity();
+            }
+            continue;
+        }
+        if (token == '\'') {
+            in_quote = !in_quote;
+            continue;
+        }
+        try currBuffer.append(token);
+    }
+
+    if (currBuffer.items.len > 0) {
+        try commands.append(try currBuffer.toOwnedSlice());
+    }
+
+    return commands;
+}
+
+test "test parse command" {
+    const allocator = std.testing.allocator;
+    var commands = try parse_command(allocator, "echo 'hello  world' 'hmm'");
+    defer {
+        for (commands.items) |command| {
+            allocator.free(command);
+        }
+        commands.deinit();
+    }
+
+    try std.testing.expectEqualStrings("echo", commands.items[0]);
+    try std.testing.expectEqualStrings(
+        "hello  world",
+        commands.items[1],
+    );
+    try std.testing.expectEqualStrings("hmm", commands.items[2]);
 }
