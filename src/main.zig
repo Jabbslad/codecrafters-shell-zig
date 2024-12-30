@@ -97,6 +97,7 @@ fn parse_command(allocator: std.mem.Allocator, command: []const u8) !std.ArrayLi
     try commands.append(try allocator.dupe(u8, tokens.first()));
     const rest = tokens.rest();
     var in_quote = false;
+    var in_double_quote = false;
 
     var currBuffer = std.ArrayList(u8).init(allocator);
     defer currBuffer.deinit();
@@ -111,6 +112,11 @@ fn parse_command(allocator: std.mem.Allocator, command: []const u8) !std.ArrayLi
         }
         if (token == '\'') {
             in_quote = !in_quote;
+            continue;
+        }
+
+        if (token == '"') {
+            in_double_quote = !in_double_quote;
             continue;
         }
         try currBuffer.append(token);
