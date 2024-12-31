@@ -103,14 +103,14 @@ fn parse_command(allocator: std.mem.Allocator, command: []const u8) !std.ArrayLi
     defer currBuffer.deinit();
 
     for (rest) |token| {
-        if (token == ' ' and !in_quote) {
+        if (token == ' ' and !in_quote and !in_double_quote) {
             if (currBuffer.items.len > 0) {
                 try commands.append(try currBuffer.toOwnedSlice());
                 currBuffer.clearRetainingCapacity();
             }
             continue;
         }
-        if (token == '\'') {
+        if (token == '\'' and !in_double_quote) {
             in_quote = !in_quote;
             continue;
         }
